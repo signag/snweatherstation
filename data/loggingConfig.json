@@ -1,0 +1,35 @@
+{
+    "version": 1,
+    "formatters":
+    {
+        "standard":
+        {
+            "format": "%(asctime)s %(name)-33s %(levelname)-8s %(message)s"
+        }
+    },
+    "handlers":
+    {
+        "console":
+        {
+            "class": "logging.StreamHandler",
+            "formatter": "standard"
+        },
+        "file":
+        {
+            "class": "logging.handlers.RotatingFileHandler",
+            "formatter": "standard",
+            "filename": "weatherstation.log",
+            "backupCount" : 3
+        }
+    },
+    "root":
+    {
+        "handlers": ["console"],
+        "level": "DEBUG"
+    },
+    "snraspi.sensors.EnvironmentSensor":
+    {
+        "handlers": ["console"],
+        "level": "INFO"
+    }
+}

@@ -1,0 +1,17 @@
+{
+    "sensorType": "DHT22",
+    "raspiPin": "PIN13",
+    "measurementInterval": 10,
+    "dbOut": true,
+    "fileOut": false,
+    "dbConnection":
+    {
+        "host": "ext3", 
+        "port": 3307, 
+        "database": "weather_test", 
+        "table": "weatherdata",
+        "user": "testuser", 
+        "password": "$[TestUser-1]@?"
+    },
+    "fileName": "~/weatherData.txt"
+}
