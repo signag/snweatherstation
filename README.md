@@ -34,7 +34,7 @@ optional arguments:
 ## Configuration
 
 Configuration for **weatherstation** needs to be provided in a specific configuration file.
-By default, a configuration file "weatherstation.json" is searched under ```shell$HOME/.config``` or under ```shell/etc```.
+By default, a configuration file "weatherstation.json" is searched under ```$HOME/.config``` or under ```/etc```.
 
 Alternatively, the path to the configuration file can be specified on the command line.
 
