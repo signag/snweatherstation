@@ -11,9 +11,9 @@ usage: weatherstation.py [-h] [-t] [-s] [-l] [-L] [-F] [-f FILE] [-v]
     This program periodically reads environment sensor data
     and stores these either in the database and/or in a file and/or just prints measured values.
 
-    If not otherwises specified on the command line, a configuration file
+    If not otherwise specified on the command line, a configuration file
        weatherstation.json
-    will be searched under $HOME/.config or /etc.
+    will be searched under $HOME/.config or under /etc.
 
     This configuration file specifies the database connection and other runtime parameters.
 
@@ -138,4 +138,4 @@ An SQL script templata is available under ./data: **createDBtable.sql**.
 
 Run this SQL script against the database to create the required database table.
 
-The table name can be configured in the **snweatherstation** config file so that different tables can be used to distinguish different physical weather stations in the same database.
+The table name can be configured in the **weatherstation** config file so that different tables can be used to distinguish different physical weather stations in the same database.
