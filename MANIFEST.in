@@ -1,2 +1,2 @@
 # Include data files
-graft data
+graft snweatherstation/data

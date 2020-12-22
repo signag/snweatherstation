@@ -2,6 +2,18 @@
 
 Another weather station for Raspberry Pi, logging temperature, humidity and pressure in a database table or to a file.
 
+## Getting started
+
+| Step | Action                                                                                                        |
+|------|---------------------------------------------------------------------------------------------------------------|
+| 1.   | Install **snweatherstation** (```[sudo] pip install snweatherstation```)                                      |
+| 2.   | Connect the chosen sensor to the Raspberry Pi GPIO pins (see [Supported Sensor Types](#supportedsensortypes)) |
+| 3.   | Create a new MariaDB database or select an available one (see [MariaDB](#mariadb) below)                      |
+| 4.   | Create table for weather data (see [Database Schema Setup](#databaseschemasetup))                             |
+| 5.   | Stage and configure the configuration file (see [Configuration](#configuration))                              |
+| 6.   | Do a test run (see [Usage](#usage))                                                                           |
+| 7.   | Set up Weatherstation service (see [Configure Weatherstation Service](#configureweatherstationservice))       |
+
 ## Usage
 
 ```shell
@@ -134,8 +146,18 @@ sudo systemctl stop mariadb
 #### Database Schema Setup
 
 **weatherstation** requires a database table with a specific structure.
-An SQL script templata is available under ./data: **createDBtable.sql**.
+
+An SQL script template is available under ```./data```: **createDBtable.sql** in the installation folder.
+
+The table name can be adjusted in the script and configured in the **weatherstation** config file so that different tables can be used to distinguish different physical weather stations in the same database.
 
 Run this SQL script against the database to create the required database table.
 
-The table name can be configured in the **weatherstation** config file so that different tables can be used to distinguish different physical weather stations in the same database.
+## Configure Weatherstation Service
+
+To continuously log weather data, **weatherstation** should be run as service.
+
+See <https://www.raspberrypi.org/documentation/linux/usage/systemd.md>
+
+A service configuration file template can be found under
+```./data``` in the installation folder.
