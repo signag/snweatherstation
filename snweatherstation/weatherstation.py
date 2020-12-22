@@ -1,4 +1,4 @@
-#!/usr/bin/pytoDrivhon3
+#!/usr/bin/python3
 """
 Module weatherStation
 
