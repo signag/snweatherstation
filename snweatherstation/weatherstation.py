@@ -371,7 +371,7 @@ def getConfig():
         or cfg["sensorType"] == EnvironmentSensor.type_DHT11 \
         or cfg["sensorType"] == EnvironmentSensor.type_DHT22:
             raise ValueError("Configuration file requires raspiPin for sensor type ", cfg["sensorType"])
-    if pin == "PIN03":
+    elif pin == "PIN03":
         cfg["raspiPinObj"] = EnvironmentSensor.PIN03
     elif pin == "PIN05":
         cfg["raspiPinObj"] = EnvironmentSensor.PIN05
