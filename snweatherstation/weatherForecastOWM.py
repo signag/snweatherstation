@@ -134,6 +134,7 @@ def mapForecast(fc, ts):
             dayfc["winddir"] = dyfc["wind_deg"]
             dayfc["clouds"] = dyfc["clouds"]
             dayfc["uvi"] = dyfc["uvi"]
+            dayfc["pop"] = dyfc["pop"]
             if "rain" in dyfc:
                 dayfc["rain"] = dyfc["rain"]
             if "snow" in hfc:
