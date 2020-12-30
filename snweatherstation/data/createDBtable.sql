@@ -24,7 +24,8 @@ CREATE TABLE `weatherforecast` (
 	`rain` FLOAT NULL DEFAULT NULL COMMENT 'Rain volume per hour in mm',
 	`snow` FLOAT NULL DEFAULT NULL COMMENT 'Snow volume per hour in mm',
 	`description` VARCHAR(50) NULL DEFAULT NULL COMMENT 'Weather condition in default language' COLLATE 'utf8_general_ci',
-	`icon` CHAR(3) NULL DEFAULT NULL COMMENT 'ID of weather icon' COLLATE 'utf8_general_ci'
+	`icon` CHAR(3) NULL DEFAULT NULL COMMENT 'ID of weather icon' COLLATE 'utf8_general_ci',
+	PRIMARY KEY (`timestamp`) USING BTREE
 )
 COLLATE='utf8_general_ci'
 ENGINE=InnoDB
@@ -49,7 +50,8 @@ CREATE TABLE `dailyforecast` (
 	`rain` FLOAT NULL DEFAULT NULL COMMENT 'Rain volume in mm/h',
 	`snow` FLOAT NULL DEFAULT NULL COMMENT 'Snow volume in mm/h',
 	`description` VARCHAR(50) NULL DEFAULT NULL COMMENT 'weather condition' COLLATE 'utf8_general_ci',
-	`icon` VARCHAR(3) NULL DEFAULT NULL COMMENT 'Weather icon ID' COLLATE 'utf8_general_ci'
+	`icon` VARCHAR(3) NULL DEFAULT NULL COMMENT 'Weather icon ID' COLLATE 'utf8_general_ci',
+	PRIMARY KEY (`date`) USING BTREE
 )
 COLLATE='utf8_general_ci'
 ENGINE=InnoDB
