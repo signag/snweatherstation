@@ -90,7 +90,7 @@ def mapForecast(fc, ts):
     # Map hourly forecast
     hourlyfc = list()
     if len(fc["hourly"]) > 0:
-        for i in range(0, len(fc["hourly"])-1):
+        for i in range(0, len(fc["hourly"])):
             hourfc = cfc.copy()
             hfc = fc["hourly"][i]
             hourfc["timestamp"] = datetime.fromtimestamp(hfc["dt"]).strftime("%Y-%m-%d %H:%M:%S")
@@ -115,7 +115,7 @@ def mapForecast(fc, ts):
     # Map daily forecast
     dailyfc = list()
     if len(fc["daily"]) > 0:
-        for i in range(0, len(fc["daily"])-1):
+        for i in range(0, len(fc["daily"])):
             dayfc = dfc.copy()
             dyfc = fc["daily"][i]
             dayfc["date"] = datetime.fromtimestamp(dyfc["dt"]).strftime("%Y-%m-%d")
@@ -137,7 +137,7 @@ def mapForecast(fc, ts):
             dayfc["pop"] = dyfc["pop"]
             if "rain" in dyfc:
                 dayfc["rain"] = dyfc["rain"]
-            if "snow" in hfc:
+            if "snow" in dyfc:
                 dayfc["snow"] = dyfc["snow"]
             if len(dyfc["weather"]) > 0:
                 w = dyfc["weather"][0]
@@ -167,7 +167,7 @@ def forecastToDb(fcData, cfg, curTs, curDate, dbCon, dbCur, servRun):
     # Insert hourly forecast
     hourfc = fcData[1]
     if len(hourfc) > 0:
-        for i in range(0, len(hourfc)-1):
+        for i in range(0, len(hourfc)):
             curfc = hourfc[i]
             if curfc["timestamp"] > curTs:
                 forecastToDbHourly(curfc, tblHourly, dbCon, dbCur, servRun)
@@ -182,7 +182,7 @@ def forecastToDb(fcData, cfg, curTs, curDate, dbCon, dbCur, servRun):
     # Insert daily forecast
     dayfc = fcData[2]
     if len(dayfc) > 0:
-        for i in range(0, len(dayfc)-1):
+        for i in range(0, len(dayfc)):
             curfc = dayfc[i]
             if curfc["date"] >= curDate:
                 forecastToDbDaily(curfc, tblDaily, dbCon, dbCur, servRun)
@@ -235,7 +235,7 @@ def forecastToDbHourly(fc, tbl, dbCon, dbCur, servRun):
         ins2 = ins2 + ", " + "{:+.1f}".format(fc["clouds"])
     if fc["uvi"] != None:
         ins1 = ins1 + ", uvi"
-        ins2 = ins2 + ", " + "{:+.1f}".format(fc["uvi"])
+        ins2 = ins2 + ", " + "{:+.2f}".format(fc["uvi"])
     if fc["visibility"] != None:
         ins1 = ins1 + ", visibility"
         ins2 = ins2 + ", " + "{:+.1f}".format(fc["visibility"])
@@ -247,10 +247,10 @@ def forecastToDbHourly(fc, tbl, dbCon, dbCur, servRun):
         ins2 = ins2 + ", " + "{:+.1f}".format(fc["winddir"])
     if fc["rain"] != None:
         ins1 = ins1 + ", rain"
-        ins2 = ins2 + ", " + "{:+.1f}".format(fc["rain"])
+        ins2 = ins2 + ", " + "{:+.2f}".format(fc["rain"])
     if fc["snow"] != None:
         ins1 = ins1 + ", snow"
-        ins2 = ins2 + ", " + "{:+.1f}".format(fc["snow"])
+        ins2 = ins2 + ", " + "{:+.2f}".format(fc["snow"])
     if fc["description"] != None:
         ins1 = ins1 + ", description"
         ins2 = ins2 + ", '" + fc["description"] + "'"
@@ -313,16 +313,16 @@ def forecastToDbDaily(fc, tbl, dbCon, dbCur, servRun):
         ins2 = ins2 + ", " + "{:+.1f}".format(fc["clouds"])
     if fc["uvi"] != None:
         ins1 = ins1 + ", uvi"
-        ins2 = ins2 + ", " + "{:+.1f}".format(fc["uvi"])
+        ins2 = ins2 + ", " + "{:+.2f}".format(fc["uvi"])
     if fc["pop"] != None:
         ins1 = ins1 + ", pop"
-        ins2 = ins2 + ", " + "{:+.1f}".format(fc["pop"])
+        ins2 = ins2 + ", " + "{:+.2f}".format(fc["pop"])
     if fc["rain"] != None:
         ins1 = ins1 + ", rain"
-        ins2 = ins2 + ", " + "{:+.1f}".format(fc["rain"])
+        ins2 = ins2 + ", " + "{:+.2f}".format(fc["rain"])
     if fc["snow"] != None:
         ins1 = ins1 + ", snow"
-        ins2 = ins2 + ", " + "{:+.1f}".format(fc["snow"])
+        ins2 = ins2 + ", " + "{:+.2f}".format(fc["snow"])
     if fc["description"] != None:
         ins1 = ins1 + ", description"
         ins2 = ins2 + ", '" + fc["description"] + "'"
