@@ -13,6 +13,7 @@ import sys
 import math
 import os.path
 import json
+import weatherForecastOWM
 
 # Set up logging
 import logging
@@ -32,6 +33,7 @@ cfg = {
     "measurementInterval": 2,
     "dbOut": False,
     "fileOut": False,
+    "includeForecast": False,
     "dbConnection":
     {
         "host": None, 
@@ -41,7 +43,31 @@ cfg = {
         "user": None, 
         "password": None
     },
-    "fileName": None
+    "fileName": None,
+    "forecast":
+    {
+        "source":
+        {
+            "url": "https://api.openweathermap.org/data/2.5/onecall",
+            "payload":
+            {
+                "lat"   : None,
+                "lon"   : None,
+                "units" : "metric",
+                "lang"  : "de",
+                "appid" : None
+            }
+        },
+        "height": None,
+        "forecastDbOut": False,
+        "forecastFileOut": False,
+        "forecastTables":
+        {
+            "hourlyForecast": None,
+            "dailyForecast" : None
+        },
+        "forecastFile": None
+    }
 }
 
 # Constants
@@ -92,6 +118,8 @@ def getCl():
     rLogger.addHandler(logging.NullHandler())
     eLogger = logging_plus.getLogger(EnvironmentSensor.__name__)
     eLogger.addHandler(logging.NullHandler())
+    fLogger = logging_plus.getLogger(weatherForecastOWM.__name__)
+    fLogger.addHandler(logging.NullHandler())
 
     # Set handler and formatter to be used
     handler = logging.StreamHandler()
@@ -106,6 +134,8 @@ def getCl():
         logger.setLevel(logging.DEBUG)
         eLogger.addHandler(handler)
         eLogger.setLevel(logging.DEBUG)
+        fLogger.addHandler(handler)
+        fLogger.setLevel(logging.DEBUG)
 
     if args.Log:
         # Deep logging
@@ -113,6 +143,8 @@ def getCl():
         logger.setLevel(logging.DEBUG)
         eLogger.addHandler(handler)
         eLogger.setLevel(logging.DEBUG)
+        fLogger.addHandler(handler)
+        fLogger.setLevel(logging.DEBUG)
         # Activate logging of function entry and exit
         logging_plus.registerAutoLogEntryExit()
 
@@ -195,6 +227,16 @@ def getConfig():
         logger.info("Using cfgFile from command line: %s", cfgFile)
 
     if cfgFile == "":
+        # Check for config file in ./tests/data directory
+        curDir = os.path.dirname(os.path.realpath(__file__))
+        curDir = os.path.dirname(curDir)
+        cfgFile = curDir + "/tests/data/" + CFGFILENAME
+        if not os.path.exists(cfgFile):
+            # Check for config file in /etc directory
+            logger.info("Config file not found: %s", cfgFile)
+            cfgFile = ""
+
+    if cfgFile == "":
         # Check for config file in home directory
         homeDir = os.environ['HOME']
         cfgFile = homeDir + "/.config/" + CFGFILENAME
@@ -230,21 +272,97 @@ def getConfig():
                 cfg["dbOut"] = conf["dbOut"]
             if "fileOut" in conf:
                 cfg["fileOut"] = conf["fileOut"]
-            if "dbConnection" in conf:
-                if "host" in conf["dbConnection"]:
-                    cfg["dbConnection"]["host"] = conf["dbConnection"]["host"]
-                if "port" in conf["dbConnection"]:
-                    cfg["dbConnection"]["port"] = conf["dbConnection"]["port"]
-                if "database" in conf["dbConnection"]:
-                    cfg["dbConnection"]["database"] = conf["dbConnection"]["database"]
-                if "table" in conf["dbConnection"]:
-                    cfg["dbConnection"]["table"] = conf["dbConnection"]["table"]
-                if "user" in conf["dbConnection"]:
-                    cfg["dbConnection"]["user"] = conf["dbConnection"]["user"]
-                if "password" in conf["dbConnection"]:
-                    cfg["dbConnection"]["password"] = conf["dbConnection"]["password"]
-            if "fileName" in conf:
-                cfg["fileName"] = conf["fileName"]
+            if "includeForecast" in conf:
+                cfg["includeForecast"] = conf["includeForecast"]
+            if cfg["dbOut"]:
+                if "dbConnection" in conf:
+                    if "host" in conf["dbConnection"]:
+                        cfg["dbConnection"]["host"] = conf["dbConnection"]["host"]
+                    else:
+                        raise ValueError("Configuration file requires dbConnection.host")
+                    if "port" in conf["dbConnection"]:
+                        cfg["dbConnection"]["port"] = conf["dbConnection"]["port"]
+                    else:
+                        raise ValueError("Configuration file requires dbConnection.port")
+                    if "database" in conf["dbConnection"]:
+                        cfg["dbConnection"]["database"] = conf["dbConnection"]["database"]
+                    else:
+                        raise ValueError("Configuration file requires dbConnection.database")
+                    if "table" in conf["dbConnection"]:
+                        cfg["dbConnection"]["table"] = conf["dbConnection"]["table"]
+                    else:
+                        raise ValueError("Configuration file requires dbConnection.table")
+                    if "user" in conf["dbConnection"]:
+                        cfg["dbConnection"]["user"] = conf["dbConnection"]["user"]
+                    else:
+                        raise ValueError("Configuration file requires dbConnection.user")
+                    if "password" in conf["dbConnection"]:
+                        cfg["dbConnection"]["password"] = conf["dbConnection"]["password"]
+                    else:
+                        raise ValueError("Configuration file requires dbConnection.password")
+                else:
+                    raise ValueError("Configuration file requires dbConnection")
+            if cfg["fileOut"]:
+                if "fileName" in conf:
+                    cfg["fileName"] = conf["fileName"]
+                else:
+                    raise ValueError("Configuration file requires fileName")
+            if cfg["includeForecast"]:
+                if "forecast" in conf:
+                    if "source" in conf["forecast"]:
+                        if "url" in conf["forecast"]["source"]:
+                            cfg["forecast"]["source"]["url"] = conf["forecast"]["source"]["url"]
+                        if "payload" in conf["forecast"]["source"]:
+                            if "lat" in conf["forecast"]["source"]["payload"]:
+                                cfg["forecast"]["source"]["payload"]["lat"] = conf["forecast"]["source"]["payload"]["lat"]
+                            else:
+                                raise ValueError("Configuration file requires forecast.source.payload.lat")
+                            if "lon" in conf["forecast"]["source"]["payload"]:
+                                cfg["forecast"]["source"]["payload"]["lon"] = conf["forecast"]["source"]["payload"]["lon"]
+                            else:
+                                raise ValueError("Configuration file requires forecast.source.payload.lon")
+                            if "units" in conf["forecast"]["source"]["payload"]:
+                                cfg["forecast"]["source"]["payload"]["units"] = conf["forecast"]["source"]["payload"]["units"]
+                            if "lang" in conf["forecast"]["source"]["payload"]:
+                                cfg["forecast"]["source"]["payload"]["lang"] = conf["forecast"]["source"]["payload"]["lang"]
+                            if "appid" in conf["forecast"]["source"]["payload"]:
+                                cfg["forecast"]["source"]["payload"]["appid"] = conf["forecast"]["source"]["payload"]["appid"]
+                            else:
+                                raise ValueError("Configuration file requires forecast.source.payload.appid")
+                        else:
+                            raise ValueError("Configuration file requires forecast.source.payload")
+                    else:
+                        raise ValueError("Configuration file requires forecast.source")
+                    if "height" in conf["forecast"]:
+                        cfg["forecast"]["height"] = conf["forecast"]["height"]
+                    else:
+                        raise ValueError("Configuration file requires forecast.height")
+                    if "forecastDbOut" in conf["forecast"]:
+                        cfg["forecast"]["forecastDbOut"] = conf["forecast"]["forecastDbOut"]
+                    if cfg["forecast"]["forecastDbOut"]:
+                        if not cfg["dbOut"]:
+                            raise ValueError("Configuration file requires dbConnection for forecastDbOut")
+                    if "forecastFileOut" in conf["forecast"]:
+                        cfg["forecast"]["forecastFileOut"] = conf["forecast"]["forecastFileOut"]
+                    if cfg["forecast"]["forecastDbOut"]:
+                        if "forecastTables" in conf["forecast"]:
+                            if "hourlyForecast" in conf["forecast"]["forecastTables"]:
+                                cfg["forecast"]["forecastTables"]["hourlyForecast"] = conf["forecast"]["forecastTables"]["hourlyForecast"]
+                            else:
+                                raise ValueError("Configuration file requires forecast.forecastTables.hourlyForecast")
+                            if "dailyForecast" in conf["forecast"]["forecastTables"]:
+                                cfg["forecast"]["forecastTables"]["dailyForecast"] = conf["forecast"]["forecastTables"]["dailyForecast"]
+                            else:
+                                raise ValueError("Configuration file requires forecast.forecastTables.dailyForecast")
+                        else:
+                            raise ValueError("Configuration file requires forecast.forecastTables")
+                    if cfg["forecast"]["forecastFileOut"]:
+                        if "forecastFile" in conf["forecast"]:
+                            cfg["forecast"]["forecastFile"] = conf["forecast"]["forecastFile"]
+                        else:
+                            raise ValueError("Configuration file requires forecast.forecastFile")
+                else:
+                    raise ValueError("Configuration file requires forecast")
 
     # Check raspiPin
     pin = cfg["raspiPin"]
@@ -325,6 +443,19 @@ def getConfig():
     logger.info("       password:        %s", cfg["dbConnection"]["password"])
     logger.info("    fileOut:            %s", cfg["fileOut"])
     logger.info("       fileName:        %s", cfg["fileName"])
+    logger.info("    includeForecast:    %s", cfg["includeForecast"])
+    logger.info("       url:             %s", cfg["forecast"]["source"]["url"])
+    logger.info("       lat:             %s", cfg["forecast"]["source"]["payload"]["lat"])
+    logger.info("       lon:             %s", cfg["forecast"]["source"]["payload"]["lon"])
+    logger.info("       units:           %s", cfg["forecast"]["source"]["payload"]["units"])
+    logger.info("       lang:            %s", cfg["forecast"]["source"]["payload"]["lang"])
+    logger.info("       appid:           %s", cfg["forecast"]["source"]["payload"]["appid"])
+    logger.info("       height:          %s", cfg["forecast"]["height"])
+    logger.info("       forecastDbOut:   %s", cfg["forecast"]["forecastDbOut"])
+    logger.info("       forecastFileOut: %s", cfg["forecast"]["forecastFileOut"])
+    logger.info("       hourlyForecast:  %s", cfg["forecast"]["forecastTables"]["hourlyForecast"])
+    logger.info("       dailyForecast:   %s", cfg["forecast"]["forecastTables"]["dailyForecast"])
+    logger.info("       forecastFile:    %s", cfg["forecast"]["forecastFile"])
 
 def waitForNextCycle():
     """
@@ -436,9 +567,13 @@ while not stop:
         noWait = False
 
         # Prepare database statement
-        txt = datetime.now().strftime("%Y/%m/%d,%H:%M:%S,")
+        curDateTime  = datetime.now()
+        curTimestamp = curDateTime.strftime("%Y-%m-%d %H:%M:%S")
+        curDate      = curDateTime.strftime("%Y-%m-%d")
+        curTime      = curDateTime.strftime("%H:%M:%S")
+        txt = curTimestamp
         ins1 = "INSERT INTO " + cfg["dbConnection"]["table"] + " (timestamp, date, time"
-        ins2 = "VALUES ('"  + datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "', '" + datetime.now().strftime("%Y-%m-%d") + "', '" + datetime.now().strftime("%H:%M:%S") + "'"
+        ins2 = "VALUES ('"  + curTimestamp + "', '" + curDate + "', '" + curTime + "'"
 
         # Get temperature from sensor
         temperature = sensor.temperature
@@ -494,6 +629,10 @@ while not stop:
             logger.debug(ins)
             cur.execute(ins)
             con.commit()
+
+        # Get forecast
+        if cfg["includeForecast"]:
+            weatherForecastOWM.handleForecast(cfg, curTimestamp, curDate, curTime, con, cur, servRun)
 
         if testRun:
             # Stop in case of test run

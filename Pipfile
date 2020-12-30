@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 mariadb = "*"
 snraspi-lib = "*"
+requests = "*"
 
 [dev-packages]
 pylint = "*"

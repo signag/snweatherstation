@@ -4,14 +4,39 @@
     "measurementInterval": 10,
     "dbOut": true,
     "fileOut": false,
+    "includeForecast": true,
     "dbConnection":
     {
-        "host": "ext3", 
+        "host": "yourHost", 
         "port": 3307, 
         "database": "weather_test", 
         "table": "weatherdata",
         "user": "testuser", 
         "password": "$[TestUser-1]@?"
     },
-    "fileName": "~/weatherData.txt"
+    "fileName": "~/weatherData.txt",
+    "forecast":
+    {
+        "source":
+        {
+            "url": "https://api.openweathermap.org/data/2.5/onecall",
+            "payload":
+            {
+                "lat"   : "54.188055",
+                "lon"   : "7.869444",
+                "units" : "metric",
+                "lang"  : "de",
+                "appid" : "yourOpenWeathetMapAppId"
+            }
+        },
+        "height": 0,
+        "forecastDbOut": true,
+        "forecastFileOut": true,
+        "forecastTables":
+        {
+            "hourlyForecast": "weatherforecast",
+            "dailyForecast" : "dailyforecast"
+        },
+        "forecastFile": "~/forecastData.txt"
+    }
 }
