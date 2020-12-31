@@ -27,20 +27,20 @@ servRun = False
 # Configuration defaults
 cfgFile = ""
 cfg = {
-    "sensorType": "BME280_I2C",
-    "raspiPin": None,
-    "raspiPinObj": None,
+    "sensorType"         : "BME280_I2C",
+    "raspiPin"           : None,
+    "raspiPinObj"        : None,
     "measurementInterval": 2,
-    "dbOut": False,
-    "fileOut": False,
-    "includeForecast": False,
+    "dbOut"              : False,
+    "fileOut"            : False,
+    "includeForecast"    : False,
     "dbConnection":
     {
-        "host": None, 
-        "port": None, 
+        "host"    : None, 
+        "port"    : None, 
         "database": None, 
-        "table" : None,
-        "user": None, 
+        "table"   : None,
+        "user"    : None, 
         "password": None
     },
     "fileName": None,
@@ -58,13 +58,14 @@ cfg = {
                 "appid" : None
             }
         },
-        "height": None,
-        "forecastDbOut": False,
+        "height"         : None,
+        "forecastDbOut  ": False,
         "forecastFileOut": False,
-        "forecastTables":
+        "forecastTables" :
         {
             "hourlyForecast": None,
-            "dailyForecast" : None
+            "dailyForecast" : None,
+            "alertsForecast": None
         },
         "forecastFile": None
     }
@@ -354,6 +355,10 @@ def getConfig():
                                 cfg["forecast"]["forecastTables"]["dailyForecast"] = conf["forecast"]["forecastTables"]["dailyForecast"]
                             else:
                                 raise ValueError("Configuration file requires forecast.forecastTables.dailyForecast")
+                            if "alertsForecast" in conf["forecast"]["forecastTables"]:
+                                cfg["forecast"]["forecastTables"]["alertsForecast"] = conf["forecast"]["forecastTables"]["alertsForecast"]
+                            else:
+                                raise ValueError("Configuration file requires forecast.forecastTables.alertsForecast")
                         else:
                             raise ValueError("Configuration file requires forecast.forecastTables")
                     if cfg["forecast"]["forecastFileOut"]:
@@ -549,11 +554,21 @@ if cfg["sensorType"] == EnvironmentSensor.type_DHT22:
 
 logger.debug("Sensor instantiated: %s", cfg["sensorType"])
 
+# Open output file
 f = None
 if cfg["fileOut"]:
     fn = cfg["fileName"]
-    f = open(fn, 'a+')
-    logger.debug("File opened: %s", cfg["fileName"])
+    f = open(fn, 'w')
+    logger.debug("File opened: %s", fn)
+
+# Open file for forecast output
+fcf = None
+if cfg["forecast"]["forecastFileOut"]:
+    fn = cfg["forecast"]["forecastFile"]
+    fcf = open(fn, 'w')
+    logger.debug("File opened: %s", fn)
+
+    fcf.write('{"forecast": [')
 
 noWait = False
 stop = False
@@ -632,7 +647,7 @@ while not stop:
 
         # Get forecast
         if cfg["includeForecast"]:
-            weatherForecastOWM.handleForecast(cfg, curTimestamp, curDate, curTime, con, cur, servRun)
+            weatherForecastOWM.handleForecast(cfg, curTimestamp, curDate, curTime, con, cur, fcf, servRun)
 
         if testRun:
             # Stop in case of test run
@@ -642,6 +657,9 @@ while not stop:
         logger.error("MariaDB Error: %s", e.msg)
         if f:
             f.close()
+        if fcf:
+            fcf.write(']}')
+            fcf.close
         if con:
             con.close()
         raise e
@@ -663,6 +681,9 @@ while not stop:
         del sensor
         if f:
             f.close()
+        if fcf:
+            fcf.write(']}')
+            fcf.close
         if con:
             con.close()
         raise error
@@ -672,6 +693,9 @@ while not stop:
             del sensor
         if f:
             f.close()
+        if fcf:
+            fcf.write(']}')
+            fcf.close
         if con:
             con.close()
 
@@ -681,6 +705,9 @@ if sensor:
     del sensor
 if f:
     f.close()
+if fcf:
+    fcf.write(']}')
+    fcf.close
 
 logger.info("=============================================================")
 logger.info("Weatherstation terminated")

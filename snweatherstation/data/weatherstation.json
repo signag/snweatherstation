@@ -1,7 +1,7 @@
 {
     "sensorType": "DHT22",
     "raspiPin": "PIN13",
-    "measurementInterval": 10,
+    "measurementInterval": 900,
     "dbOut": true,
     "fileOut": false,
     "includeForecast": true,
@@ -14,7 +14,7 @@
         "user": "testuser", 
         "password": "$[TestUser-1]@?"
     },
-    "fileName": "~/weatherData.txt",
+    "fileName": "weatherData.txt",
     "forecast":
     {
         "source":
@@ -31,12 +31,13 @@
         },
         "height": 0,
         "forecastDbOut": true,
-        "forecastFileOut": true,
+        "forecastFileOut": false,
         "forecastTables":
         {
             "hourlyForecast": "weatherforecast",
-            "dailyForecast" : "dailyforecast"
+            "dailyForecast" : "dailyforecast",
+            "alertsForecast": "alerts"
         },
-        "forecastFile": "~/forecastData.txt"
+        "forecastFile": "forecastData.json"
     }
 }

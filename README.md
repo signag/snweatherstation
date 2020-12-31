@@ -71,7 +71,7 @@ The following is an example of a configuration file:
 {
     "sensorType": "DHT22",
     "raspiPin": "PIN13",
-    "measurementInterval": 10,
+    "measurementInterval": 900,
     "dbOut": true,
     "fileOut": false,
     "includeForecast": true,
@@ -84,7 +84,7 @@ The following is an example of a configuration file:
         "user": "testuser", 
         "password": "$[TestUser-1]@?"
     },
-    "fileName": "~/weatherData.txt",
+    "fileName": "weatherData.txt",
     "forecast":
     {
         "source":
@@ -105,9 +105,10 @@ The following is an example of a configuration file:
         "forecastTables":
         {
             "hourlyForecast": "weatherforecast",
-            "dailyForecast" : "dailyforecast"
+            "dailyForecast" : "dailyforecast",
+            "alertsForecast": "alerts"
         },
-        "forecastFile": "~/forecastData.txt"
+        "forecastFile": "forecastData.txt"
     }
 }
 ```
@@ -145,7 +146,8 @@ The following is an example of a configuration file:
 | -- **forecastTables**| Table names for forecast data                                                          | For forecastDbOut=true   |
 | --- hourlyForecast   | Table name for hourly forecast                                                         | Yes                      |
 | --- dailyForecast    | Table name for daily forecast                                                          | Yes                      |
-| -- forecastFile      | Path to file for forecast data                                                         | For forecastFileOut=true |
+| --- alertsForecast   | Table name for alerts                                                                  | Yes                      |
+| -- forecastFile      | Path to file for forecast data. File output is JSON as received from weather service   | For forecastFileOut=true |
 
 ### Supported Sensor Types
 

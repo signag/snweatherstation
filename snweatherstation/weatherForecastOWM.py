@@ -13,19 +13,20 @@ logger = logging_plus.getLogger("__name__")
 # Defaults
 # Current / hourly forecast
 cfc = {
-    "timestamp": None,
-    "temperature": None,
-    "humidity" : None,
-    "pressure" : None,
-    "clouds" : None,
-    "uvi" : None,
-    "visibility" : None,
-    "windspeed" : None,
-    "winddir" : None,
-    "rain" : None,
-    "snow" : None,
+    "timestamp"   : None,
+    "temperature" : None,
+    "humidity"    : None,
+    "pressure"    : None,
+    "clouds"      : None,
+    "uvi"         : None,
+    "visibility"  : None,
+    "windspeed"   : None,
+    "winddir"     : None,
+    "rain"        : None,
+    "snow"        : None,
     "description" : None,
-    "icon" : None,
+    "icon"        : None,
+    "alerts"      : 0
 }
 # Daily forecast
 dfc = {
@@ -49,6 +50,7 @@ dfc = {
     "snow" : None,
     "description" : None,
     "icon" : None,
+    "alerts"      : 0
 }
 
 def getForecast(url, payload):
@@ -79,13 +81,14 @@ def mapForecast(fc, ts):
     curfc["windspeed"] = fc["current"]["wind_speed"]
     curfc["winddir"] = fc["current"]["wind_deg"]
     if "rain" in fc["current"]:
-        curfc["rain"] = fc["current"]["rain"]
+        curfc["rain"] = fc["current"]["rain"]["1h"]
     if "snow" in fc["current"]:
-        curfc["snow"] = fc["current"]["snow"]
+        curfc["snow"] = fc["current"]["snow"]["1h"]
     if len(fc["current"]["weather"]) > 0:
         w = fc["current"]["weather"][0]
         curfc["description"] = w["description"]
         curfc["icon"] = w["icon"]
+    curfc["alerts"] = getAlerts(fc, fc["current"]["dt"])
 
     # Map hourly forecast
     hourlyfc = list()
@@ -110,6 +113,8 @@ def mapForecast(fc, ts):
                 w = hfc["weather"][0]
                 hourfc["description"] = w["description"]
                 hourfc["icon"] = w["icon"]
+                hourfc["alerts"] = getAlerts(fc, hfc["dt"])
+
             hourlyfc.append(hourfc)
     
     # Map daily forecast
@@ -143,9 +148,25 @@ def mapForecast(fc, ts):
                 w = dyfc["weather"][0]
                 dayfc["description"] = w["description"]
                 dayfc["icon"] = w["icon"]
+                dayfc["alerts"] = getAlerts(fc, dyfc["dt"])
+
             dailyfc.append(dayfc)
 
     return [curfc, hourlyfc, dailyfc]
+
+def getAlerts(fc, dt):
+    """
+    Count the number of alerts for a given date/time (dt)
+    """
+    res = 0
+
+    if "alerts" in fc:
+        if len(fc["alerts"]) > 0:
+            for i in range(0, len(fc["alerts"])):
+                alert = fc["alerts"][i]
+                if dt >= alert["start"] and dt <= alert["end"]:
+                    res = res + 1
+    return res
 
 def forecastToDb(fcData, cfg, curTs, curDate, dbCon, dbCur, servRun):
     """
@@ -257,6 +278,9 @@ def forecastToDbHourly(fc, tbl, dbCon, dbCur, servRun):
     if fc["icon"] != None:
         ins1 = ins1 + ", icon"
         ins2 = ins2 + ", '" + fc["icon"] + "'"
+    if fc["alerts"] != None:
+        ins1 = ins1 + ", alerts"
+        ins2 = ins2 + ", " + "{}".format(fc["alerts"])
 
     # Insert Current forecast
     ins = ins1 + ") " + ins2 + ")"
@@ -329,6 +353,9 @@ def forecastToDbDaily(fc, tbl, dbCon, dbCur, servRun):
     if fc["icon"] != None:
         ins1 = ins1 + ", icon"
         ins2 = ins2 + ", '" + fc["icon"] + "'"
+    if fc["alerts"] != None:
+        ins1 = ins1 + ", alerts"
+        ins2 = ins2 + ", " + "{}".format(fc["alerts"])
 
     # Insert Current forecast
     ins = ins1 + ") " + ins2 + ")"
@@ -336,13 +363,56 @@ def forecastToDbDaily(fc, tbl, dbCon, dbCur, servRun):
     dbCur.execute(ins)
     dbCon.commit()
 
-def forecastToFile(fcData, cfg, curTs, dbCon, dbCur, servRun):
+def alertsToDb(fc, cfg, dbCon, dbCur, servRun):
+    """
+    Store alerts in database
+    """
+
+    tbl = cfg["forecast"]["forecastTables"]["alertsForecast"]
+
+    if "alerts" in fc:
+        if len(fc["alerts"]) > 0:
+            for i in range(0, len(fc["alerts"])):
+                alert = fc["alerts"][i]
+                # Prepare statement
+                ins1 = "INSERT INTO " + tbl + " ("
+                ins2 = "VALUES ("
+                ins3 = " ON DUPLICATE KEY UPDATE "
+                
+                ins1 = ins1 + "start"
+                ins2 = ins2 + "'" + datetime.fromtimestamp(alert["start"]).strftime("%Y-%m-%d %H:%M:%S") + "'"
+
+                ins1 = ins1 + ", end"
+                ins2 = ins2 + ", '" + datetime.fromtimestamp(alert["end"]).strftime("%Y-%m-%d %H:%M:%S") + "'"
+
+                ins1 = ins1 + ", event"
+                ins2 = ins2 + ", '" + alert["event"] + "'"
+
+                ins1 = ins1 + ", sender_name"
+                ins2 = ins2 + ", '" + alert["sender_name"] + "'"
+
+                ins1 = ins1 + ", description"
+                ins2 = ins2 + ", '" + alert["description"] + "'"
+                ins3 = ins3 + "description='" + alert["description"] + "'"
+
+                # Insert Current forecast
+                ins = ins1 + ") " + ins2 + ")" + ins3
+                logger.debug(ins)
+                dbCur.execute(ins)
+                dbCon.commit()
+
+
+def forecastToFile(fc, cfg, curTs, fil, servRun):
     """
     Store forecast data in database
     """
-    pass
+    fil.write('{')
+    fil.write('"time": "' + curTs + '",')
+    fil.write('"data":')
+    fil.write(json.dumps(fc))
+    fil.write('}')
 
-def handleForecast(cfg, curTs, curDate, curTime, dbCon, dbCur, servRun):
+def handleForecast(cfg, curTs, curDate, curTime, dbCon, dbCur, fil, servRun):
     """
     Handle forecast according to given configuration
 
@@ -353,11 +423,17 @@ def handleForecast(cfg, curTs, curDate, curTime, dbCon, dbCur, servRun):
     - curTime: Measurement Time
     - dbCon  : Database connection
     - dbCur  : Database cursor
+    - fil    : file handler for outpot file
+    - servRun: True for service run
     """
     # Get the forecast
     url = cfg["forecast"]["source"]["url"]
     payload = cfg["forecast"]["source"]["payload"]
     fc = getForecast(url, payload)
+
+    # Output to file
+    if cfg["forecast"]["forecastFileOut"]:
+        forecastToFile(fc, cfg, curTs, fil, servRun)
 
     # Map forecast
     fcData = mapForecast(fc, curTs)
@@ -366,6 +442,6 @@ def handleForecast(cfg, curTs, curDate, curTime, dbCon, dbCur, servRun):
     if cfg["forecast"]["forecastDbOut"]:
         forecastToDb(fcData, cfg, curTs, curDate, dbCon, dbCur, servRun)
 
-    # Output to file
-    if cfg["forecast"]["forecastFileOut"]:
-        forecastToFile(fcData, cfg, curTs, dbCon, dbCur, servRun)
+    # Store alerts
+    if cfg["forecast"]["forecastDbOut"]:
+        alertsToDb(fc, cfg, dbCon, dbCur, servRun)
