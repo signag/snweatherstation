@@ -4,7 +4,8 @@ CREATE TABLE `weatherdata` (
 	`time` TIME NOT NULL COMMENT 'Time',
 	`temperature` FLOAT NULL DEFAULT NULL COMMENT 'Temperature in °C',
 	`humidity` FLOAT NULL DEFAULT NULL COMMENT 'Humidity in %',
-	`pressure` FLOAT NULL DEFAULT NULL COMMENT 'Atmospheric pressure in hPa',
+	`pressure_m` INT NULL DEFAULT NULL COMMENT 'Measured atmospheric pressure in hPa',
+	`pressure` FLOAT NULL DEFAULT NULL COMMENT 'Reduced atmospheric pressure in hPa',
 	`altitude` FLOAT NULL DEFAULT NULL COMMENT 'Altitude',
 	PRIMARY KEY (`timestamp`) USING BTREE
 )

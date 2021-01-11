@@ -31,6 +31,7 @@ cfg = {
     "raspiPin"           : None,
     "raspiPinObj"        : None,
     "measurementInterval": 2,
+    "height"             : None,
     "dbOut"              : False,
     "fileOut"            : False,
     "includeForecast"    : False,
@@ -58,7 +59,6 @@ cfg = {
                 "appid" : None
             }
         },
-        "height"         : None,
         "forecastDbOut  ": False,
         "forecastFileOut": False,
         "forecastTables" :
@@ -96,7 +96,7 @@ def getCl():
 
     If not otherwises specified on the command line, a configuration file
        weatherstation.json
-    will be searched under $HOME/.config or /etc.
+    will be searched sequentially under ./tests/data, $HOME/.config or /etc.
 
     This configuration file specifies the database connection and other runtime parameters.
     """
@@ -269,6 +269,10 @@ def getConfig():
                     raise ValueError("Configuration file requires raspiPin for sensor type ", cfg["sensorType"])
             if "measurementInterval" in conf:
                 cfg["measurementInterval"] = conf["measurementInterval"]
+            if "height" in conf:
+                cfg["height"] = conf["height"]
+            else:
+                raise ValueError("Configuration file requires height")
             if "dbOut" in conf:
                 cfg["dbOut"] = conf["dbOut"]
             if "fileOut" in conf:
@@ -334,10 +338,6 @@ def getConfig():
                             raise ValueError("Configuration file requires forecast.source.payload")
                     else:
                         raise ValueError("Configuration file requires forecast.source")
-                    if "height" in conf["forecast"]:
-                        cfg["forecast"]["height"] = conf["forecast"]["height"]
-                    else:
-                        raise ValueError("Configuration file requires forecast.height")
                     if "forecastDbOut" in conf["forecast"]:
                         cfg["forecast"]["forecastDbOut"] = conf["forecast"]["forecastDbOut"]
                     if cfg["forecast"]["forecastDbOut"]:
@@ -439,6 +439,7 @@ def getConfig():
     logger.info("    sensorType:         %s", cfg["sensorType"])
     logger.info("    raspiPin:           %s", cfg["raspiPin"])
     logger.info("    measurementInterval:%s", cfg["measurementInterval"])
+    logger.info("    height:             %s", cfg["height"])
     logger.info("    dbOut:              %s", cfg["dbOut"])
     logger.info("       host:            %s", cfg["dbConnection"]["host"])
     logger.info("       port:            %s", cfg["dbConnection"]["port"])
@@ -455,7 +456,6 @@ def getConfig():
     logger.info("       units:           %s", cfg["forecast"]["source"]["payload"]["units"])
     logger.info("       lang:            %s", cfg["forecast"]["source"]["payload"]["lang"])
     logger.info("       appid:           %s", cfg["forecast"]["source"]["payload"]["appid"])
-    logger.info("       height:          %s", cfg["forecast"]["height"])
     logger.info("       forecastDbOut:   %s", cfg["forecast"]["forecastDbOut"])
     logger.info("       forecastFileOut: %s", cfg["forecast"]["forecastFileOut"])
     logger.info("       hourlyForecast:  %s", cfg["forecast"]["forecastTables"]["hourlyForecast"])
@@ -507,6 +507,41 @@ def waitForNextCycle():
         waitTimeSec =cfg["measurementInterval"]
         logger.debug("At %s waiting for %s sec.", datetime.now().strftime("%Y/%m/%d %H:%M:%S,"), waitTimeSec)
         time.sleep(waitTimeSec)
+
+def pressureReduced(p, h, t):
+    """
+    Calculate reducet atmospheric pressure according to Barometric formula.
+
+    Source: https://de.wikipedia.org/wiki/Barometrische_H%C3%B6henformel
+    Input:
+    p: pressure at height h (in hPa)
+    h: height of measurement station in m
+    t: Temperature in °C
+    """
+    import math
+
+    # Constants
+    g0 = 9.80665    # Gravitational acceleration (m/s**2)
+    R  = 287.05     # Universal gas constant (m**2/s**2 K)
+    t0 = 273.15     # Absolute temperature 0°C (K)
+    a  = 0.0065     # Vertical temperature gradient
+    C  = 0.12       # Parameter for consideration of vapor pressure
+    tl = 9.1        # Temperature threshold for approximation of vapor pressure (°C)
+
+    p0 = p
+    if h and t:
+        if t < tl:
+            E = 5.6402 * (-0.0916 + math.exp(0.06 * t))
+        else:
+            E = 18.2194 * (1.0463 - math.exp(-0.0666 * t))
+
+        x = g0 * h / (R * (t + t0 + C * E + a * h / 2))
+
+        p0 = p * math.exp(x)
+
+    logger.debug("p0(p=%s, h=%s, t=%s) = %s", p, h, t, p0)
+
+    return p0
 
 #============================================================================================
 # Start __main__
@@ -614,8 +649,12 @@ while not stop:
             txt = txt + ","
         else:
             txt = txt + "{:.1f},".format(pressure)
-            ins1 = ins1 + ", pressure"
+            ins1 = ins1 + ", pressure_m"
             ins2 = ins2 + ", " + "{:+.1f}".format(pressure)
+            pressure_r = pressureReduced(pressure, cfg["height"], temperature)
+            txt = txt + "{:.1f},".format(pressure_r)
+            ins1 = ins1 + ", pressure"
+            ins2 = ins2 + ", " + "{:+.1f}".format(pressure_r)
 
         # Get altitude from sensor
         altitude = sensor.altitude

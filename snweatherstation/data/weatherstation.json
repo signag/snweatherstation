@@ -2,6 +2,7 @@
     "sensorType": "DHT22",
     "raspiPin": "PIN13",
     "measurementInterval": 900,
+    "height": 0,
     "dbOut": true,
     "fileOut": false,
     "includeForecast": true,
@@ -29,7 +30,6 @@
                 "appid" : "yourOpenWeathetMapAppId"
             }
         },
-        "height": 0,
         "forecastDbOut": true,
         "forecastFileOut": false,
         "forecastTables":

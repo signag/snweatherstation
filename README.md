@@ -1,9 +1,9 @@
 # snweatherstation
 
-Another weather station for Raspberry Pi, logging temperature, humidity and pressure in a database table or to a file.
+Another weather station for Raspberry Pi, logging temperature, humidity and pressure (station height and reduced) in a database table or to a file.
 If configured, also foracast data from <https://openweathermap.org/> are logged in the database.
 
-A web application is available to visualize measured data together with historical and forecast data.
+A web application is available at <https://github.com/signag/snweather-ui> to visualize measured data together with historical and forecast data.
 
 ## Getting started
 
@@ -72,6 +72,7 @@ The following is an example of a configuration file:
     "sensorType": "DHT22",
     "raspiPin": "PIN13",
     "measurementInterval": 900,
+    "height": 226,
     "dbOut": true,
     "fileOut": false,
     "includeForecast": true,
@@ -99,7 +100,6 @@ The following is an example of a configuration file:
                 "appid" : "xxxxx"
             }
         },
-        "height": 226,
         "forecastDbOut": true,
         "forecastFileOut": false,
         "forecastTables":
@@ -120,6 +120,7 @@ The following is an example of a configuration file:
 | sensorType           | Type of the environment sensor (see supported sensor types, below)                     | Yes                      |
 | raspiPin             | Raspberry Pi GPIO pin in BOARD notation used for data signal, if required              | See SesorType            |
 | measurementInterval  | Measurement interval in seconds.                                                       | Yes                      |
+| height               | Height of weatherstation above sea level (for barometric formula)                      | Yes                      |
 | dbOut                | Specifies whether measured values shall be stored in the database (true, false)        | Yes                      |
 | fileOut              | Specifies whether measured values shall be written to the specified file (true, false) | Yes                      |
 | includeForecast      | Specifies whether forecast data shall be tracked (true, false)                         | Yes                      |
@@ -140,7 +141,6 @@ The following is an example of a configuration file:
 | --- units            | Units in which to return data ('**metric**' or 'imperial')                             | No                       |
 | --- lang             | valid language code for language specific data (default: 'de')                         | No                       |
 | --- appid            | Your unique API key (<https://openweathermap.org/> account page under  "API key" tab)  | Yes                      |
-| -- height            | Height of weatherstation above sea level (for barometric formula)                      | Yes                      |
 | -- forecastDbOut     | If foracast data shall be stored in the database (true, false)                         | Yes                      |
 | -- forecastFileOut   | If forecast data shall be written to file (true, false)                                | Yes                      |
 | -- **forecastTables**| Table names for forecast data                                                          | For forecastDbOut=true   |
