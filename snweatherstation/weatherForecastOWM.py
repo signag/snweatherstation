@@ -205,8 +205,10 @@ def forecastToDb(fcData, cfg, curTs, curDate, dbCon, dbCur, servRun):
     if len(hourfc) > 0:
         for i in range(0, len(hourfc)):
             curfc = hourfc[i]
-            if curfc["timestamp"] > limTs:
+            if curfc["timestamp"] >= limTs:
                 forecastToDbHourly(curfc, tblHourly, dbCon, dbCur, servRun)
+            elif (curfc["timestamp"] >= curTs) and (curTs < limTs):
+                forecastToDbCurrent(curfc, tblHourly, dbCon, dbCur, servRun)
     #
     # Store daily forecast
     #
@@ -368,17 +370,17 @@ def forecastToDbHourly(fc, tbl, dbCon, dbCur, servRun):
     if fc["temperature"] != None:
         ins1 = ins1 + ", temperature"
         ins2 = ins2 + ", " + "{:+.1f}".format(fc["temperature"])
-        ins1 = ins1 + ", temperature_fc"
+        ins1 = ins1 + ", temperature_hist"
         ins2 = ins2 + ", " + "{:+.1f}".format(fc["temperature"])
     if fc["humidity"] != None:
         ins1 = ins1 + ", humidity"
         ins2 = ins2 + ", " + "{:+.1f}".format(fc["humidity"])
-        ins1 = ins1 + ", humidity_fc"
+        ins1 = ins1 + ", humidity_hist"
         ins2 = ins2 + ", " + "{:+.1f}".format(fc["humidity"])
     if fc["pressure"] != None:
         ins1 = ins1 + ", pressure"
         ins2 = ins2 + ", " + "{:+.1f}".format(fc["pressure"])
-        ins1 = ins1 + ", pressure_fc"
+        ins1 = ins1 + ", pressure_hist"
         ins2 = ins2 + ", " + "{:+.1f}".format(fc["pressure"])
     if fc["clouds"] != None:
         ins1 = ins1 + ", clouds"

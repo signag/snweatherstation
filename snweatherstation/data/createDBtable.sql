@@ -1,10 +1,10 @@
 CREATE TABLE `weatherdata` (
-	`timestamp` TIMESTAMP NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp() COMMENT 'Time',
+	`timestamp` TIMESTAMP NOT NULL DEFAULT current_timestamp() COMMENT 'Time',
 	`date` DATE NOT NULL COMMENT 'Date',
 	`time` TIME NOT NULL COMMENT 'Time',
 	`temperature` FLOAT NULL DEFAULT NULL COMMENT 'Temperature in °C',
 	`humidity` FLOAT NULL DEFAULT NULL COMMENT 'Humidity in %',
-	`pressure_m` INT NULL DEFAULT NULL COMMENT 'Measured atmospheric pressure in hPa',
+	`pressure_m` FLOAT NULL DEFAULT NULL COMMENT 'Measured atmospheric pressure in hPa',
 	`pressure` FLOAT NULL DEFAULT NULL COMMENT 'Reduced atmospheric pressure in hPa',
 	`altitude` FLOAT NULL DEFAULT NULL COMMENT 'Altitude',
 	PRIMARY KEY (`timestamp`) USING BTREE
@@ -13,13 +13,13 @@ COLLATE='utf8_general_ci'
 ENGINE=InnoDB
 ;
 CREATE TABLE `weatherforecast` (
-	`timestamp` TIMESTAMP NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp() COMMENT 'Forecast time',
+	`timestamp` TIMESTAMP NOT NULL DEFAULT current_timestamp() COMMENT 'Forecast time',
 	`temperature` FLOAT NULL DEFAULT NULL COMMENT 'Temperature in °C',
-	`temperature_fc` FLOAT NULL DEFAULT NULL COMMENT 'Frecast temperature in °C',
+	`temperature_hist` FLOAT NULL DEFAULT NULL COMMENT 'Historical forecast temperature in °C',
 	`humidity` FLOAT NULL DEFAULT NULL COMMENT 'Humidity in %',
-	`humidity_fc` FLOAT NULL DEFAULT NULL COMMENT 'Forecast humidity in %',
+	`humidity_hist` FLOAT NULL DEFAULT NULL COMMENT 'Historical forecast humidity in %',
 	`pressure` FLOAT NULL DEFAULT NULL COMMENT 'Atmospheric pressure in hPa',
-	`pressure_fc` FLOAT NULL DEFAULT NULL COMMENT 'Forecast pressure in hPa',
+	`pressure_hist` FLOAT NULL DEFAULT NULL COMMENT 'Historical forecast pressure in hPa',
 	`clouds` FLOAT NULL DEFAULT NULL COMMENT 'Cloudiness in %',
 	`uvi` FLOAT NULL DEFAULT NULL COMMENT 'UV index',
 	`visibility` FLOAT NULL DEFAULT NULL COMMENT 'Visibility in m',
@@ -65,7 +65,7 @@ COLLATE='utf8_general_ci'
 ENGINE=InnoDB
 ;
 CREATE TABLE `alerts` (
-	`start` TIMESTAMP NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp() COMMENT 'Date and time of the start of the alert',
+	`start` TIMESTAMP NOT NULL DEFAULT current_timestamp() COMMENT 'Date and time of the start of the alert',
 	`end` TIMESTAMP NOT NULL DEFAULT '0000-00-00 00:00:00' COMMENT 'Date and time of the end of the alert',
 	`event` TINYTEXT NOT NULL COMMENT 'Alert event name' COLLATE 'utf8_general_ci',
 	`sender_name` TINYTEXT NOT NULL COMMENT 'Name of the alert source' COLLATE 'utf8_general_ci',
