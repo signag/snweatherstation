@@ -32,6 +32,7 @@
         },
         "forecastDbOut": true,
         "forecastFileOut": false,
+        "forecastRetain" : 4,
         "forecastTables":
         {
             "hourlyForecast": "weatherforecast",

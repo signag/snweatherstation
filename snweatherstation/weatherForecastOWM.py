@@ -4,11 +4,13 @@ Module for querying weather forecast data from OpenWeatherMap and storage in dat
 """
 import json
 import requests
-from datetime import datetime
+import datetime
 
 # Set up logging
+import logging
 import logging_plus
-logger = logging_plus.getLogger("__name__")
+logger = logging_plus.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 
 # Defaults
 # Current / hourly forecast
@@ -96,7 +98,7 @@ def mapForecast(fc, ts):
         for i in range(0, len(fc["hourly"])):
             hourfc = cfc.copy()
             hfc = fc["hourly"][i]
-            hourfc["timestamp"] = datetime.fromtimestamp(hfc["dt"]).strftime("%Y-%m-%d %H:%M:%S")
+            hourfc["timestamp"] = datetime.datetime.fromtimestamp(hfc["dt"]).strftime("%Y-%m-%d %H:%M:%S")
             hourfc["temperature"] = hfc["temp"]
             hourfc["humidity"] = hfc["humidity"]
             hourfc["pressure"] = hfc["pressure"]
@@ -123,9 +125,9 @@ def mapForecast(fc, ts):
         for i in range(0, len(fc["daily"])):
             dayfc = dfc.copy()
             dyfc = fc["daily"][i]
-            dayfc["date"] = datetime.fromtimestamp(dyfc["dt"]).strftime("%Y-%m-%d")
-            dayfc["sunrise"] = datetime.fromtimestamp(dyfc["sunrise"]).strftime("%H:%M:%S")
-            dayfc["sunset"] = datetime.fromtimestamp(dyfc["sunset"]).strftime("%H:%M:%S")
+            dayfc["date"] = datetime.datetime.fromtimestamp(dyfc["dt"]).strftime("%Y-%m-%d")
+            dayfc["sunrise"] = datetime.datetime.fromtimestamp(dyfc["sunrise"]).strftime("%H:%M:%S")
+            dayfc["sunset"] = datetime.datetime.fromtimestamp(dyfc["sunset"]).strftime("%H:%M:%S")
             dyfct = dyfc["temp"]
             dayfc["temperature_m"] = dyfct["morn"]
             dayfc["temperature_d"] = dyfct["day"]
@@ -176,21 +178,34 @@ def forecastToDb(fcData, cfg, curTs, curDate, dbCon, dbCur, servRun):
     #
     # Store current and hourly forecast
     #
-    tblHourly = cfg["forecast"]["forecastTables"]["hourlyForecast"]
+    tblHourly     = cfg["forecast"]["forecastTables"]["hourlyForecast"]
 
     # Clean up current / hourly forecast
-    forecastToDbHourlyCleanup(tblHourly, curTs, dbCon, dbCur, servRun)
+    # Retain forecast for the next fcRetainHours hours
+    fcRetainHours = cfg["forecast"]["forecastRetain"]
+
+    t_lastTs = getLatestForecast(tblHourly, dbCon, dbCur, servRun)
+    if t_lastTs:
+        t_lastTs = t_lastTs + datetime.timedelta(minutes=1)
+        t_curTs  = datetime.datetime.strptime(curTs, "%Y-%m-%d %H:%M:%S")
+        t_limTs  = t_curTs + datetime.timedelta(hours=fcRetainHours)
+        if t_lastTs < t_limTs:
+            t_limTs = t_lastTs
+        limTs    = t_limTs.strftime("%Y-%m-%d %H:%M:%S")
+    else:
+        limTs = curTs
+    forecastToDbHourlyCleanup(tblHourly, limTs, dbCon, dbCur, servRun)
 
     # Insert Current forecast
     curfc = fcData[0]
-    forecastToDbHourly(curfc, tblHourly, dbCon, dbCur, servRun)
+    forecastToDbCurrent(curfc, tblHourly, dbCon, dbCur, servRun)
 
     # Insert hourly forecast
     hourfc = fcData[1]
     if len(hourfc) > 0:
         for i in range(0, len(hourfc)):
             curfc = hourfc[i]
-            if curfc["timestamp"] > curTs:
+            if curfc["timestamp"] > limTs:
                 forecastToDbHourly(curfc, tblHourly, dbCon, dbCur, servRun)
     #
     # Store daily forecast
@@ -207,6 +222,22 @@ def forecastToDb(fcData, cfg, curTs, curDate, dbCon, dbCur, servRun):
             curfc = dayfc[i]
             if curfc["date"] >= curDate:
                 forecastToDbDaily(curfc, tblDaily, dbCon, dbCur, servRun)
+
+def getLatestForecast(tbl, dbCon, dbCur, servRun):
+    """
+    Return the timestamp for the latest forecast.
+    """
+    # Prepare statement
+    stmt = "SELECT timestamp FROM " + tbl + " ORDER BY TIMESTAMP DESC LIMIT 0,1"
+ 
+    logger.debug(stmt)
+    dbCur.execute(stmt)
+
+    res = None
+    for (timestamp) in dbCur:
+        res = timestamp[0]
+
+    return res
 
 def forecastToDbHourlyCleanup(tbl, ts, dbCon, dbCur, servRun):
     """
@@ -227,11 +258,103 @@ def forecastToDbDailyCleanup(tbl, curDate, dbCon, dbCur, servRun):
 
     This is necessary in order to allow later insertion of forecast entries
     """
+    
     # Prepare statement
     stmt = "DELETE FROM " + tbl + " WHERE date >= '" + curDate + "'"
 
     logger.debug(stmt)
     dbCur.execute(stmt)
+    dbCon.commit()
+
+def forecastToDbCurrent(fc, tbl, dbCon, dbCur, servRun):
+    """
+    Store current forecast data in database
+    """
+    global logger
+
+    # Prepare statement
+    ins1 = "INSERT INTO " + tbl + " (timestamp"
+    ins2 = "VALUES ('"  + fc["timestamp"] + "'"
+    ins3 = " ON DUPLICATE KEY UPDATE "
+
+    if fc["temperature"] != None:
+        ins1 = ins1 + ", temperature"
+        ins2 = ins2 + ", " + "{:+.1f}".format(fc["temperature"])
+        ins3 = ins3 + "temperature="
+        ins3 = ins3 + "{:+.1f}".format(fc["temperature"])
+    if fc["humidity"] != None:
+        ins1 = ins1 + ", humidity"
+        ins2 = ins2 + ", " + "{:+.1f}".format(fc["humidity"])
+        ins3 = ins3 + ", humidity="
+        ins3 = ins3 + "{:+.1f}".format(fc["humidity"])
+    if fc["pressure"] != None:
+        ins1 = ins1 + ", pressure"
+        ins2 = ins2 + ", " + "{:+.1f}".format(fc["pressure"])
+        ins3 = ins3 + ", pressure="
+        ins3 = ins3 + "{:+.1f}".format(fc["pressure"])
+    if fc["clouds"] != None:
+        ins1 = ins1 + ", clouds"
+        ins2 = ins2 + ", " + "{:+.1f}".format(fc["clouds"])
+        ins3 = ins3 + ", clouds="
+        ins3 = ins3 + "{:+.1f}".format(fc["clouds"])
+    if fc["uvi"] != None:
+        ins1 = ins1 + ", uvi"
+        ins2 = ins2 + ", " + "{:+.2f}".format(fc["uvi"])
+        ins3 = ins3 + ", uvi="
+        ins3 = ins3 + "{:+.2f}".format(fc["uvi"])
+    if fc["visibility"] != None:
+        ins1 = ins1 + ", visibility"
+        ins2 = ins2 + ", " + "{:+.1f}".format(fc["visibility"])
+        ins3 = ins3 + ", visibility="
+        ins3 = ins3 + "{:+.1f}".format(fc["visibility"])
+    if fc["windspeed"] != None:
+        ins1 = ins1 + ", windspeed"
+        ins2 = ins2 + ", " + "{:+.1f}".format(fc["windspeed"])
+        ins3 = ins3 + ", windspeed="
+        ins3 = ins3 + "{:+.1f}".format(fc["windspeed"])
+    if fc["winddir"] != None:
+        ins1 = ins1 + ", winddir"
+        ins2 = ins2 + ", " + "{:+.1f}".format(fc["winddir"])
+        ins3 = ins3 + ", winddir="
+        ins3 = ins3 + "{:+.1f}".format(fc["winddir"])
+    if fc["rain"] != None:
+        ins1 = ins1 + ", rain"
+        ins2 = ins2 + ", " + "{:+.2f}".format(fc["rain"])
+        ins3 = ins3 + ", rain="
+        ins3 = ins3 + "{:+.2f}".format(fc["rain"])
+    if fc["snow"] != None:
+        ins1 = ins1 + ", snow"
+        ins2 = ins2 + ", " + "{:+.2f}".format(fc["snow"])
+        ins3 = ins3 + ", snow="
+        ins3 = ins3 + "{:+.2f}".format(fc["snow"])
+    if fc["description"] != None:
+        ins1 = ins1 + ", description"
+        ins2 = ins2 + ", '" + fc["description"] + "'"
+        ins3 = ins3 + ", description="
+        ins3 = ins3 + "'" + fc["description"] + "'"
+    if fc["icon"] != None:
+        ins1 = ins1 + ", icon"
+        ins2 = ins2 + ", '" + fc["icon"] + "'"
+        ins3 = ins3 + ", icon="
+        ins3 = ins3 + "'" + fc["icon"] + "'"
+    if fc["alerts"] != None:
+        ins1 = ins1 + ", alerts"
+        ins2 = ins2 + ", " + "{}".format(fc["alerts"])
+        ins3 = ins3 + ", alerts="
+        ins3 = ins3 + "{}".format(fc["alerts"])
+
+    tnow = datetime.datetime.now()
+    ins1 = ins1 + ", time_cre"
+    ins2 = ins2 + ", '" + tnow.strftime("%Y-%m-%d %H:%M:%S") + "'"
+    ins1 = ins1 + ", time_mod"
+    ins2 = ins2 + ", '" + tnow.strftime("%Y-%m-%d %H:%M:%S") + "'"
+    ins3 = ins3 + ", time_mod="
+    ins3 = ins3 + "'" + tnow.strftime("%Y-%m-%d %H:%M:%S") + "'"
+
+    # Insert Current forecast
+    ins = ins1 + ") " + ins2 + ")" + ins3
+    logger.debug(ins)
+    dbCur.execute(ins)
     dbCon.commit()
 
 def forecastToDbHourly(fc, tbl, dbCon, dbCur, servRun):
@@ -245,11 +368,17 @@ def forecastToDbHourly(fc, tbl, dbCon, dbCur, servRun):
     if fc["temperature"] != None:
         ins1 = ins1 + ", temperature"
         ins2 = ins2 + ", " + "{:+.1f}".format(fc["temperature"])
+        ins1 = ins1 + ", temperature_fc"
+        ins2 = ins2 + ", " + "{:+.1f}".format(fc["temperature"])
     if fc["humidity"] != None:
         ins1 = ins1 + ", humidity"
         ins2 = ins2 + ", " + "{:+.1f}".format(fc["humidity"])
+        ins1 = ins1 + ", humidity_fc"
+        ins2 = ins2 + ", " + "{:+.1f}".format(fc["humidity"])
     if fc["pressure"] != None:
         ins1 = ins1 + ", pressure"
+        ins2 = ins2 + ", " + "{:+.1f}".format(fc["pressure"])
+        ins1 = ins1 + ", pressure_fc"
         ins2 = ins2 + ", " + "{:+.1f}".format(fc["pressure"])
     if fc["clouds"] != None:
         ins1 = ins1 + ", clouds"
@@ -281,6 +410,13 @@ def forecastToDbHourly(fc, tbl, dbCon, dbCur, servRun):
     if fc["alerts"] != None:
         ins1 = ins1 + ", alerts"
         ins2 = ins2 + ", " + "{}".format(fc["alerts"])
+
+
+    tnow = datetime.datetime.now()
+    ins1 = ins1 + ", time_cre"
+    ins2 = ins2 + ", '" + tnow.strftime("%Y-%m-%d %H:%M:%S") + "'"
+    ins1 = ins1 + ", time_mod"
+    ins2 = ins2 + ", '" + tnow.strftime("%Y-%m-%d %H:%M:%S") + "'"
 
     # Insert Current forecast
     ins = ins1 + ") " + ins2 + ")"
@@ -380,10 +516,10 @@ def alertsToDb(fc, cfg, dbCon, dbCur, servRun):
                 ins3 = " ON DUPLICATE KEY UPDATE "
                 
                 ins1 = ins1 + "start"
-                ins2 = ins2 + "'" + datetime.fromtimestamp(alert["start"]).strftime("%Y-%m-%d %H:%M:%S") + "'"
+                ins2 = ins2 + "'" + datetime.datetime.fromtimestamp(alert["start"]).strftime("%Y-%m-%d %H:%M:%S") + "'"
 
                 ins1 = ins1 + ", end"
-                ins2 = ins2 + ", '" + datetime.fromtimestamp(alert["end"]).strftime("%Y-%m-%d %H:%M:%S") + "'"
+                ins2 = ins2 + ", '" + datetime.datetime.fromtimestamp(alert["end"]).strftime("%Y-%m-%d %H:%M:%S") + "'"
 
                 ins1 = ins1 + ", event"
                 ins2 = ins2 + ", '" + alert["event"] + "'"

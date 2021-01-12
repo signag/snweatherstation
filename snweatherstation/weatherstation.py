@@ -7,7 +7,7 @@ This module includes functions for a weather station
 
 from snraspi.sensors import EnvironmentSensor
 import time
-from datetime import datetime
+import datetime
 import mariadb
 import sys
 import math
@@ -61,6 +61,7 @@ cfg = {
         },
         "forecastDbOut  ": False,
         "forecastFileOut": False,
+        "forecastRetain" : 4,
         "forecastTables" :
         {
             "hourlyForecast": None,
@@ -345,6 +346,8 @@ def getConfig():
                             raise ValueError("Configuration file requires dbConnection for forecastDbOut")
                     if "forecastFileOut" in conf["forecast"]:
                         cfg["forecast"]["forecastFileOut"] = conf["forecast"]["forecastFileOut"]
+                    if "forecastRetain" in conf["forecast"]:
+                        cfg["forecast"]["forecastRetain"] = conf["forecast"]["forecastRetain"]
                     if cfg["forecast"]["forecastDbOut"]:
                         if "forecastTables" in conf["forecast"]:
                             if "hourlyForecast" in conf["forecast"]["forecastTables"]:
@@ -458,6 +461,7 @@ def getConfig():
     logger.info("       appid:           %s", cfg["forecast"]["source"]["payload"]["appid"])
     logger.info("       forecastDbOut:   %s", cfg["forecast"]["forecastDbOut"])
     logger.info("       forecastFileOut: %s", cfg["forecast"]["forecastFileOut"])
+    logger.info("       forecastRetain : %s", cfg["forecast"]["forecastRetain"])
     logger.info("       hourlyForecast:  %s", cfg["forecast"]["forecastTables"]["hourlyForecast"])
     logger.info("       dailyForecast:   %s", cfg["forecast"]["forecastTables"]["dailyForecast"])
     logger.info("       forecastFile:    %s", cfg["forecast"]["forecastFile"])
@@ -482,11 +486,11 @@ def waitForNextCycle():
     or (cfg["measurementInterval"] % 900 == 0)\
     or (cfg["measurementInterval"] % 1200 == 0)\
     or (cfg["measurementInterval"] % 1800 == 0):
-        tNow = datetime.now()
+        tNow = datetime.datetime.now()
         seconds = 60 * tNow.minute
         period = math.floor(seconds/cfg["measurementInterval"])
         waitTimeSec = (period + 1) * cfg["measurementInterval"] - (60 * tNow.minute + tNow.second + tNow.microsecond / 1000000)
-        logger.debug("At %s waiting for %s sec.", datetime.now().strftime("%Y/%m/%d %H:%M:%S,"), waitTimeSec)
+        logger.debug("At %s waiting for %s sec.", datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S,"), waitTimeSec)
         time.sleep(waitTimeSec)
     elif (cfg["measurementInterval"] % 2 == 0)\
       or (cfg["measurementInterval"] % 4 == 0)\
@@ -497,15 +501,15 @@ def waitForNextCycle():
       or (cfg["measurementInterval"] % 15 == 0)\
       or (cfg["measurementInterval"] % 20 == 0)\
       or (cfg["measurementInterval"] % 30 == 0):
-            tNow = datetime.now()
+            tNow = datetime.datetime.now()
             seconds = 60 * tNow.minute + tNow.second
             period = math.floor(seconds/cfg["measurementInterval"])
             waitTimeSec = (period + 1) * cfg["measurementInterval"] - seconds
-            logger.debug("At %s waiting for %s sec.", datetime.now().strftime("%Y/%m/%d %H:%M:%S,"), waitTimeSec)
+            logger.debug("At %s waiting for %s sec.", datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S,"), waitTimeSec)
             time.sleep(waitTimeSec)
     else:
         waitTimeSec =cfg["measurementInterval"]
-        logger.debug("At %s waiting for %s sec.", datetime.now().strftime("%Y/%m/%d %H:%M:%S,"), waitTimeSec)
+        logger.debug("At %s waiting for %s sec.", datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S,"), waitTimeSec)
         time.sleep(waitTimeSec)
 
 def pressureReduced(p, h, t):
@@ -617,7 +621,7 @@ while not stop:
         noWait = False
 
         # Prepare database statement
-        curDateTime  = datetime.now()
+        curDateTime  = datetime.datetime.now()
         curTimestamp = curDateTime.strftime("%Y-%m-%d %H:%M:%S")
         curDate      = curDateTime.strftime("%Y-%m-%d")
         curTime      = curDateTime.strftime("%H:%M:%S")

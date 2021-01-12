@@ -102,6 +102,7 @@ The following is an example of a configuration file:
         },
         "forecastDbOut": true,
         "forecastFileOut": false,
+        "forecastRetain" : 4,
         "forecastTables":
         {
             "hourlyForecast": "weatherforecast",
@@ -143,6 +144,7 @@ The following is an example of a configuration file:
 | --- appid            | Your unique API key (<https://openweathermap.org/> account page under  "API key" tab)  | Yes                      |
 | -- forecastDbOut     | If foracast data shall be stored in the database (true, false)                         | Yes                      |
 | -- forecastFileOut   | If forecast data shall be written to file (true, false)                                | Yes                      |
+| -- forecastRetain    | Number of hours to retain future forecast as historical forecast (default: 4)          | No                       |
 | -- **forecastTables**| Table names for forecast data                                                          | For forecastDbOut=true   |
 | --- hourlyForecast   | Table name for hourly forecast                                                         | Yes                      |
 | --- dailyForecast    | Table name for daily forecast                                                          | Yes                      |

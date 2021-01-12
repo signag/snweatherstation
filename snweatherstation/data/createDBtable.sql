@@ -15,8 +15,11 @@ ENGINE=InnoDB
 CREATE TABLE `weatherforecast` (
 	`timestamp` TIMESTAMP NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp() COMMENT 'Forecast time',
 	`temperature` FLOAT NULL DEFAULT NULL COMMENT 'Temperature in °C',
+	`temperature_fc` FLOAT NULL DEFAULT NULL COMMENT 'Frecast temperature in °C',
 	`humidity` FLOAT NULL DEFAULT NULL COMMENT 'Humidity in %',
+	`humidity_fc` FLOAT NULL DEFAULT NULL COMMENT 'Forecast humidity in %',
 	`pressure` FLOAT NULL DEFAULT NULL COMMENT 'Atmospheric pressure in hPa',
+	`pressure_fc` FLOAT NULL DEFAULT NULL COMMENT 'Forecast pressure in hPa',
 	`clouds` FLOAT NULL DEFAULT NULL COMMENT 'Cloudiness in %',
 	`uvi` FLOAT NULL DEFAULT NULL COMMENT 'UV index',
 	`visibility` FLOAT NULL DEFAULT NULL COMMENT 'Visibility in m',
@@ -27,6 +30,8 @@ CREATE TABLE `weatherforecast` (
 	`description` VARCHAR(50) NULL DEFAULT NULL COMMENT 'Weather condition in default language' COLLATE 'utf8_general_ci',
 	`icon` CHAR(3) NULL DEFAULT NULL COMMENT 'ID of weather icon' COLLATE 'utf8_general_ci',
 	`alerts` INT(11) NULL DEFAULT '0' COMMENT 'Number of alerts',
+	`time_cre` TIMESTAMP NULL DEFAULT NULL COMMENT 'Creation time',
+	`time_mod` TIMESTAMP NULL DEFAULT NULL COMMENT 'Modification time',
 	PRIMARY KEY (`timestamp`) USING BTREE
 )
 COLLATE='utf8_general_ci'
