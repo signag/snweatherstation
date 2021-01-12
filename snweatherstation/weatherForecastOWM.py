@@ -192,6 +192,8 @@ def forecastToDb(fcData, cfg, curTs, curDate, dbCon, dbCur, servRun):
         if t_lastTs < t_limTs:
             t_limTs = t_lastTs
         limTs    = t_limTs.strftime("%Y-%m-%d %H:%M:%S")
+        if limTs < curTs:
+            limTs = curTs
     else:
         limTs = curTs
     forecastToDbHourlyCleanup(tblHourly, limTs, dbCon, dbCur, servRun)
