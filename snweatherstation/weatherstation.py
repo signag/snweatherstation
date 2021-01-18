@@ -533,7 +533,7 @@ def pressureReduced(p, h, t):
     tl = 9.1        # Temperature threshold for approximation of vapor pressure (°C)
 
     p0 = p
-    if h and t:
+    if (h != None) and (t != None):
         if t < tl:
             E = 5.6402 * (-0.0916 + math.exp(0.06 * t))
         else:
