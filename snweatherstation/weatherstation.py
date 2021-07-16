@@ -582,16 +582,21 @@ if cfg["dbOut"]:
     cur = con.cursor()
 
 # Instantiate sensor
-if cfg["sensorType"] == EnvironmentSensor.type_BME280_I2C:
-    sensor = EnvironmentSensor.BME280_I2C()
-if cfg["sensorType"] == EnvironmentSensor.type_BME280_SPI:
-    sensor = EnvironmentSensor.BME280_SPI(cfg["raspiPinObj"])
-if cfg["sensorType"] == EnvironmentSensor.type_DHT11:
-    sensor = EnvironmentSensor.DHT11(cfg["raspiPinObj"])
-if cfg["sensorType"] == EnvironmentSensor.type_DHT22:
-    sensor = EnvironmentSensor.DHT22(cfg["raspiPinObj"])
+try:
+    if cfg["sensorType"] == EnvironmentSensor.type_BME280_I2C:
+        sensor = EnvironmentSensor.BME280_I2C()
+    if cfg["sensorType"] == EnvironmentSensor.type_BME280_SPI:
+        sensor = EnvironmentSensor.BME280_SPI(cfg["raspiPinObj"])
+    if cfg["sensorType"] == EnvironmentSensor.type_DHT11:
+        sensor = EnvironmentSensor.DHT11(cfg["raspiPinObj"])
+    if cfg["sensorType"] == EnvironmentSensor.type_DHT22:
+        sensor = EnvironmentSensor.DHT22(cfg["raspiPinObj"])
 
-logger.debug("Sensor instantiated: %s", cfg["sensorType"])
+    logger.debug("Sensor instantiated: %s", cfg["sensorType"])
+
+except Exception as e:
+    logger.error("Sensor instantiation error: %s", e)
+    sensor = None
 
 # Open output file
 f = None
@@ -630,7 +635,10 @@ while not stop:
         ins2 = "VALUES ('"  + curTimestamp + "', '" + curDate + "', '" + curTime + "'"
 
         # Get temperature from sensor
-        temperature = sensor.temperature
+        if sensor:
+            temperature = sensor.temperature
+        else:
+            temperature = None
         if temperature is None:
             txt = txt + ","
         else:
@@ -639,7 +647,10 @@ while not stop:
             ins2 = ins2 + ", " + "{:+.1f}".format(temperature)
 
         # Get humidity from sensor
-        humidity = sensor.humidity
+        if sensor:
+            humidity = sensor.humidity
+        else:
+            humidity = None
         if humidity is None:
             txt = txt + ","
         else:
@@ -648,7 +659,10 @@ while not stop:
             ins2 = ins2 + ", " + "{:+.1f}".format(humidity)
 
         # Get pressure from sensor
-        pressure = sensor.pressure
+        if sensor:
+            pressure = sensor.pressure
+        else:
+            pressure = None
         if pressure is None:
             txt = txt + ","
         else:
@@ -661,7 +675,10 @@ while not stop:
             ins2 = ins2 + ", " + "{:+.1f}".format(pressure_r)
 
         # Get altitude from sensor
-        altitude = sensor.altitude
+        if sensor:
+            altitude = sensor.altitude
+        else:
+            altitude = None
         if pressure is None:
             txt = txt + ","
         else:
@@ -721,7 +738,8 @@ while not stop:
             continue
 
     except Exception as error:
-        del sensor
+        if sensor:
+            del sensor
         if f:
             f.close()
         if fcf:
