@@ -75,6 +75,7 @@ The following is an example of a configuration file:
     "height": 226,
     "dbOut": true,
     "fileOut": false,
+    "includeMeasurement": true,
     "includeForecast": true,
     "dbConnection":
     {
@@ -124,6 +125,7 @@ The following is an example of a configuration file:
 | height               | Height of weatherstation above sea level (for barometric formula)                      | Yes                      |
 | dbOut                | Specifies whether measured values shall be stored in the database (true, false)        | Yes                      |
 | fileOut              | Specifies whether measured values shall be written to the specified file (true, false) | Yes                      |
+| includeMeasurement   | Specifies whether measured data shall be tracked (true, false)  (for testing forecast) | Yes                      |
 | includeForecast      | Specifies whether forecast data shall be tracked (true, false)                         | Yes                      |
 | **dbConnection**     | Database connection parameters                                                         | For dbOut=true           |
 | - host               | Host name or IP address of database server                                             | Yes                      |

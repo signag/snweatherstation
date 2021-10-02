@@ -63,7 +63,16 @@ def getForecast(url, payload):
     if fcr.status_code != requests.codes.ok:
         fcr.raise_for_status()
 
-    return fcr.json()
+    try:
+        fcrj = fcr.json()
+    except  Exception as e:
+        logger.error("Error parsing response: %s", e)
+        fcrj = None
+        logger.error("Request URL    : %s", url)
+        logger.error("Request payload: %s", payload)
+        logger.error("Response       : %s", fcr.text)
+
+    return fcrj
 
 def mapForecast(fc, ts):
     """
@@ -571,17 +580,18 @@ def handleForecast(cfg, curTs, curDate, curTime, dbCon, dbCur, fil, servRun):
     payload = cfg["forecast"]["source"]["payload"]
     fc = getForecast(url, payload)
 
-    # Output to file
-    if cfg["forecast"]["forecastFileOut"]:
-        forecastToFile(fc, cfg, curTs, fil, servRun)
+    if fc:
+        # Output to file
+        if cfg["forecast"]["forecastFileOut"]:
+            forecastToFile(fc, cfg, curTs, fil, servRun)
 
-    # Map forecast
-    fcData = mapForecast(fc, curTs)
+        # Map forecast
+        fcData = mapForecast(fc, curTs)
 
-    # Store in database
-    if cfg["forecast"]["forecastDbOut"]:
-        forecastToDb(fcData, cfg, curTs, curDate, dbCon, dbCur, servRun)
+        # Store in database
+        if cfg["forecast"]["forecastDbOut"]:
+            forecastToDb(fcData, cfg, curTs, curDate, dbCon, dbCur, servRun)
 
-    # Store alerts
-    if cfg["forecast"]["forecastDbOut"]:
-        alertsToDb(fc, cfg, dbCon, dbCur, servRun)
+        # Store alerts
+        if cfg["forecast"]["forecastDbOut"]:
+            alertsToDb(fc, cfg, dbCon, dbCur, servRun)

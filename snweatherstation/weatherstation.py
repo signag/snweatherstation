@@ -34,6 +34,7 @@ cfg = {
     "height"             : None,
     "dbOut"              : False,
     "fileOut"            : False,
+    "includeMeasurement" : True,
     "includeForecast"    : False,
     "dbConnection":
     {
@@ -188,6 +189,8 @@ def getCl():
         if not args.log and not args.Log and not args.Full:
             logger.addHandler(handler)
             logger.setLevel(logging.INFO)
+            fLogger.addHandler(handler)
+            fLogger.setLevel(logging.ERROR)
 
     if args.test:
         testRun = True
@@ -278,6 +281,8 @@ def getConfig():
                 cfg["dbOut"] = conf["dbOut"]
             if "fileOut" in conf:
                 cfg["fileOut"] = conf["fileOut"]
+            if "includeMeasurement" in conf:
+                cfg["includeMeasurement"] = conf["includeMeasurement"]
             if "includeForecast" in conf:
                 cfg["includeForecast"] = conf["includeForecast"]
             if cfg["dbOut"]:
@@ -452,6 +457,7 @@ def getConfig():
     logger.info("       password:        %s", cfg["dbConnection"]["password"])
     logger.info("    fileOut:            %s", cfg["fileOut"])
     logger.info("       fileName:        %s", cfg["fileName"])
+    logger.info("    includeMeasurement: %s", cfg["includeMeasurement"])
     logger.info("    includeForecast:    %s", cfg["includeForecast"])
     logger.info("       url:             %s", cfg["forecast"]["source"]["url"])
     logger.info("       lat:             %s", cfg["forecast"]["source"]["payload"]["lat"])
@@ -582,20 +588,23 @@ if cfg["dbOut"]:
     cur = con.cursor()
 
 # Instantiate sensor
-try:
-    if cfg["sensorType"] == EnvironmentSensor.type_BME280_I2C:
-        sensor = EnvironmentSensor.BME280_I2C()
-    if cfg["sensorType"] == EnvironmentSensor.type_BME280_SPI:
-        sensor = EnvironmentSensor.BME280_SPI(cfg["raspiPinObj"])
-    if cfg["sensorType"] == EnvironmentSensor.type_DHT11:
-        sensor = EnvironmentSensor.DHT11(cfg["raspiPinObj"])
-    if cfg["sensorType"] == EnvironmentSensor.type_DHT22:
-        sensor = EnvironmentSensor.DHT22(cfg["raspiPinObj"])
+if cfg["includeMeasurement"]:
+    try:
+        if cfg["sensorType"] == EnvironmentSensor.type_BME280_I2C:
+            sensor = EnvironmentSensor.BME280_I2C()
+        if cfg["sensorType"] == EnvironmentSensor.type_BME280_SPI:
+            sensor = EnvironmentSensor.BME280_SPI(cfg["raspiPinObj"])
+        if cfg["sensorType"] == EnvironmentSensor.type_DHT11:
+            sensor = EnvironmentSensor.DHT11(cfg["raspiPinObj"])
+        if cfg["sensorType"] == EnvironmentSensor.type_DHT22:
+            sensor = EnvironmentSensor.DHT22(cfg["raspiPinObj"])
 
-    logger.debug("Sensor instantiated: %s", cfg["sensorType"])
+        logger.debug("Sensor instantiated: %s", cfg["sensorType"])
 
-except Exception as e:
-    logger.error("Sensor instantiation error: %s", e)
+    except Exception as e:
+        logger.error("Sensor instantiation error: %s", e)
+        sensor = None
+else:
     sensor = None
 
 # Open output file
@@ -634,76 +643,77 @@ while not stop:
         ins1 = "INSERT INTO " + cfg["dbConnection"]["table"] + " (timestamp, date, time"
         ins2 = "VALUES ('"  + curTimestamp + "', '" + curDate + "', '" + curTime + "'"
 
-        # Get temperature from sensor
-        if sensor:
-            temperature = sensor.temperature
-        else:
-            temperature = None
-        if temperature is None:
-            txt = txt + ","
-        else:
-            txt = txt + "{:+.1f},".format(temperature)
-            ins1 = ins1 + ", temperature"
-            ins2 = ins2 + ", " + "{:+.1f}".format(temperature)
+        if cfg["includeMeasurement"]:
+            # Get temperature from sensor
+            if sensor:
+                temperature = sensor.temperature
+            else:
+                temperature = None
+            if temperature is None:
+                txt = txt + ","
+            else:
+                txt = txt + "{:+.1f},".format(temperature)
+                ins1 = ins1 + ", temperature"
+                ins2 = ins2 + ", " + "{:+.1f}".format(temperature)
 
-        # Get humidity from sensor
-        if sensor:
-            humidity = sensor.humidity
-        else:
-            humidity = None
-        if humidity is None:
-            txt = txt + ","
-        else:
-            txt = txt + "{:.1f},".format(humidity)
-            ins1 = ins1 + ", humidity"
-            ins2 = ins2 + ", " + "{:+.1f}".format(humidity)
+            # Get humidity from sensor
+            if sensor:
+                humidity = sensor.humidity
+            else:
+                humidity = None
+            if humidity is None:
+                txt = txt + ","
+            else:
+                txt = txt + "{:.1f},".format(humidity)
+                ins1 = ins1 + ", humidity"
+                ins2 = ins2 + ", " + "{:+.1f}".format(humidity)
 
-        # Get pressure from sensor
-        if sensor:
-            pressure = sensor.pressure
-        else:
-            pressure = None
-        if pressure is None:
-            txt = txt + ","
-        else:
-            txt = txt + "{:.1f},".format(pressure)
-            ins1 = ins1 + ", pressure_m"
-            ins2 = ins2 + ", " + "{:+.1f}".format(pressure)
-            pressure_r = pressureReduced(pressure, cfg["height"], temperature)
-            txt = txt + "{:.1f},".format(pressure_r)
-            ins1 = ins1 + ", pressure"
-            ins2 = ins2 + ", " + "{:+.1f}".format(pressure_r)
+            # Get pressure from sensor
+            if sensor:
+                pressure = sensor.pressure
+            else:
+                pressure = None
+            if pressure is None:
+                txt = txt + ","
+            else:
+                txt = txt + "{:.1f},".format(pressure)
+                ins1 = ins1 + ", pressure_m"
+                ins2 = ins2 + ", " + "{:+.1f}".format(pressure)
+                pressure_r = pressureReduced(pressure, cfg["height"], temperature)
+                txt = txt + "{:.1f},".format(pressure_r)
+                ins1 = ins1 + ", pressure"
+                ins2 = ins2 + ", " + "{:+.1f}".format(pressure_r)
 
-        # Get altitude from sensor
-        if sensor:
-            altitude = sensor.altitude
-        else:
-            altitude = None
-        if pressure is None:
-            txt = txt + ","
-        else:
-            txt = txt + "{:.1f}".format(altitude)
-            ins1 = ins1 + ", altitude"
-            ins2 = ins2 + ", " + "{:+.1f}".format(altitude)
+            # Get altitude from sensor
+            if sensor:
+                altitude = sensor.altitude
+            else:
+                altitude = None
+            if pressure is None:
+                txt = txt + ","
+            else:
+                txt = txt + "{:.1f}".format(altitude)
+                ins1 = ins1 + ", altitude"
+                ins2 = ins2 + ", " + "{:+.1f}".format(altitude)
 
-        txt = txt + "\n"
-        
-        # Write to file, if required
-        if cfg["fileOut"]:
-            f.write(txt)
+            txt = txt + "\n"
+            
+            # Write to file, if required
+            if cfg["fileOut"]:
+                f.write(txt)
 
-        # Log measurement
-        if servRun:
-            logger.debug("Measurement: %s", txt)
-        else:
-            logger.info("Measurement: %s", txt)
+            # Log measurement
+            if servRun:
+                logger.debug("Measurement: %s", txt)
+            else:
+                logger.info("Measurement: %s", txt)
 
-        # Insert into database, if required
-        if cfg["dbOut"]:
-            ins = ins1 + ") " + ins2 + ")"
-            logger.debug(ins)
-            cur.execute(ins)
-            con.commit()
+            # Insert into database, if required
+            if cfg["dbOut"]:
+                ins = ins1 + ") " + ins2 + ")"
+                logger.debug(ins)
+                cur.execute(ins)
+                con.commit()
 
         # Get forecast
         if cfg["includeForecast"]:
