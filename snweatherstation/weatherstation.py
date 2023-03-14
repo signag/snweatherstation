@@ -60,7 +60,7 @@ cfg = {
                 "appid" : None
             }
         },
-        "forecastDbOut  ": False,
+        "forecastDbOut"  : False,
         "forecastFileOut": False,
         "forecastRetain" : 4,
         "forecastTables" :
@@ -640,8 +640,12 @@ while not stop:
         curDate      = curDateTime.strftime("%Y-%m-%d")
         curTime      = curDateTime.strftime("%H:%M:%S")
         txt = curTimestamp
-        ins1 = "INSERT INTO " + cfg["dbConnection"]["table"] + " (timestamp, date, time"
-        ins2 = "VALUES ('"  + curTimestamp + "', '" + curDate + "', '" + curTime + "'"
+        if cfg["dbOut"]:
+            ins1 = "INSERT INTO " + cfg["dbConnection"]["table"] + " (timestamp, date, time"
+            ins2 = "VALUES ('"  + curTimestamp + "', '" + curDate + "', '" + curTime + "'"
+        else:
+            ins1 = ""
+            ins2 = ""
 
         if cfg["includeMeasurement"]:
             # Get temperature from sensor
